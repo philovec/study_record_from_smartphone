@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>学習タイマー</title>
+    <style>
+        /* --- モバイル向けCSS --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h2 { margin-top: 0; font-size: 20px; color: #1f2937; }
+        
+        /* タイマー表示部 */
+        #timerDisplay {
+            font-size: 48px;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums; /* 数字の幅を固定してガタつきを防ぐ */
+            color: #2563eb;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #eff6ff;
+            border-radius: 12px;
+        }
+
+        /* フォーム要素 */
+        .form-group { margin-bottom: 16px; text-align: left; }
+        label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: bold; color: #4b5563; }
+        input[type="text"], textarea {
+            width: 100%; padding: 12px; font-size: 16px; border: 1px solid #d1d5db;
+            border-radius: 8px; box-sizing: border-box; background-color: #f9fafb;
+        }
+        textarea { resize: vertical; min-height: 80px; }
+
+        /* ボタン群 */
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        button {
+            flex: 1; padding: 14px; font-size: 16px; font-weight: bold; color: white;
+            border: none; border-radius: 8px; cursor: pointer; transition: 0.2s;
+        }
+        #startBtn { background-color: #16a34a; }
+        #startBtn:active { background-color: #15803d; }
+        #stopBtn { background-color: #dc2626; display: none; }
+        #stopBtn:active { background-color: #b91c1c; }
+        #submitBtn { background-color: #2563eb; width: 100%; display: none; }
+        #submitBtn:active { background-color: #1d4ed8; }
+        button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+        #message { margin-top: 16px; font-size: 14px; font-weight: bold; min-height: 20px; }
+        .success { color: #16a34a; }
+        .error { color: #dc2626; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⏱️ 学習タイマー</h2>
+    
+    <div class="form-group">
+        <label for="subject_name">科目名</label>
+        <input type="text" id="subject_name" placeholder="例: データベース設計" required>
+    </div>
+
+    <div id="timerDisplay">00:00:00</div>
+
+    <div class="btn-group">
+        <button id="startBtn">▶️ スタート</button>
+        <button id="stopBtn">⏹️ ストップ</button>
+    </div>
+
+    <div class="form-group">
+        <label for="note">メモ（任意）</label>
+        <textarea id="note" placeholder="学習内容や気づきなど"></textarea>
+    </div>
+
+    <button id="submitBtn">記録を送信（DBへ保存）</button>
+    <div id="message"></div>
+</div>
+
+<script>
+    // --- 変数の準備 ---
+    let timerInterval;
+    let startTime;
+    let elapsedSeconds = 0;
+    let finalMinutes = 0;
+
+    const timerDisplay = document.getElementById('timerDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const messageDiv = document.getElementById('message');
+
+    // GASのWebアプリURL（index.htmlと同じものを設定してください）
+    const GAS_URL = 'YOUR_GAS_WEB_APP_URL';
+
+    // --- 時間のフォーマット処理 (hh:mm:ss) ---
+    function formatTime(totalSeconds) {
+        const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+        const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+        const s = String(totalSeconds % 60).padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
+    // --- タイマー開始 ---
+    startBtn.addEventListener('click', () => {
+        const subject = document.getElementById('subject_name').value.trim();
+        if (!subject) {
+            alert("先に「科目名」を入力してください！");
+            return;
+        }
+
+        startTime = Date.now() - (elapsedSeconds * 1000); // 再開時の調整
+        timerInterval = setInterval(() => {
+            elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            timerDisplay.textContent = formatTime(elapsedSeconds);
+        }, 1000);
+
+        // ボタンの表示切替
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+        submitBtn.style.display = 'none';
+        messageDiv.textContent = '';
+        document.getElementById('subject_name').disabled = true; // 学習中は科目名を変更不可に
+    });
+
+    // --- タイマー停止 ---
+    stopBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        finalMinutes = Math.floor(elapsedSeconds / 60);
+
+        // ボタンの表示切替
+        stopBtn.style.display = 'none';
+        startBtn.style.display = 'block';
+        startBtn.textContent = '⏸️ 再開する';
+        submitBtn.style.display = 'block'; // 送信ボタンを表示
+        submitBtn.textContent = `記録を送信（${finalMinutes}分）`;
+    });
+
+    // --- GASへデータ送信 ---
+    submitBtn.addEventListener('click', async () => {
+        if (finalMinutes < 1) {
+            alert("学習時間が1分未満のため、記録を送信できません。");
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '送信中...';
+
+        const today = new Date();
+        const target_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        const payload = {
+            target_date: target_date,
+            subject_name: document.getElementById('subject_name').value.trim(),
+            minutes: finalMinutes,
+            note: document.getElementById('note').value.trim()
+        };
+
+        try {
+            const response = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            });
+
+            messageDiv.textContent = '✅ タイマー記録を保存しました！';
+            messageDiv.className = 'success';
+            
+            // 画面の初期化
+            elapsedSeconds = 0;
+            finalMinutes = 0;
+            timerDisplay.textContent = "00:00:00";
+            document.getElementById('note').value = '';
+            document.getElementById('subject_name').disabled = false;
+            startBtn.textContent = '▶️ スタート';
+            submitBtn.style.display = 'none';
+
+        } catch (error) {
+            console.error('Error:', error);
+            messageDiv.textContent = '❌ エラーが発生しました。';
+            messageDiv.className = 'error';
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>
