@@ -86,7 +86,8 @@
     <a href="index.html" class="nav-link">⬅️ 📝 手入力で記録する画面へ戻る</a>
     <div class="form-group">
         <label for="subject_name">科目名</label>
-        <input type="text" id="subject_name" placeholder="例: データベース設計" required>
+        <input type="text" id="subject_name" list="subject_list" placeholder="例: データベース設計" required autocomplete="off">
+        <datalist id="subject_list"></datalist>
     </div>
 
     <div id="timerDisplay">00:00:00</div>
@@ -118,8 +119,41 @@
     const submitBtn = document.getElementById('submitBtn');
     const messageDiv = document.getElementById('message');
 
+    // --- localStorage から科目リストを管理する処理 ---
+    const subjectList = document.getElementById('subject_list');
+    
+    // localStorage からデータを取得（なければ空の配列）
+    localStorage.setItem('myStudySubjects', JSON.stringify(['OSS-DB silver', 'Python3 エンジニア基礎', 'Python3 エンジニアデータ分析', 'Linuc レベル1', '財務会計論', '管理会計論', '監査論', '企業法', '租税法', '民法', '刑法', '行政法', 'その他法学部科目']));
+    let savedSubjects = JSON.parse(localStorage.getItem('myStudySubjects')) || [];
+
+    // datalist に選択肢を展開する関数
+    function renderSubjectList() {
+        subjectList.innerHTML = ''; // 一旦クリア
+        savedSubjects.forEach(subject => {
+            const option = document.createElement('option');
+            option.value = subject;
+            subjectList.appendChild(option);
+        });
+    }
+
+    // 新しい科目を保存する関数
+    function saveSubjectLocally(newSubject) {
+        // まだ保存されていない科目なら追加する
+        if (!savedSubjects.includes(newSubject)) {
+            savedSubjects.push(newSubject);
+            // localStorage に JSON 形式で保存
+            localStorage.setItem('myStudySubjects', JSON.stringify(savedSubjects));
+            // datalist を更新
+            renderSubjectList();
+        }
+    }
+
+    // 画面読み込み時にリストを展開
+    renderSubjectList();
+    // ------------------------------------------------
+
     // GASのWebアプリURL（index.htmlと同じものを設定してください）
-    const GAS_URL = 'YOUR_GAS_WEB_APP_URL';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbx9oPu4rH8l1CSkpleRmjyimZ0HcXfzOpBJHdUEHXi7bStDXmcXmoSJtr7ccX4hZ8BaTA/exec';
 
     // --- 時間のフォーマット処理 (hh:mm:ss) ---
     function formatTime(totalSeconds) {
@@ -191,6 +225,7 @@
                 body: JSON.stringify(payload)
             });
 
+            saveSubjectLocally(payload.subject_name);
             messageDiv.textContent = '✅ タイマー記録を保存しました！';
             messageDiv.className = 'success';
             
