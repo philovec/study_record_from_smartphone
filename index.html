@@ -116,7 +116,8 @@
 
         <div class="form-group">
             <label for="subject_name">科目名</label>
-            <input type="text" id="subject_name" placeholder="例: データベース設計" required>
+            <input type="text" id="subject_name" list="subject_list" placeholder="例: データベース設計" required autocomplete="off">
+            <datalist id="subject_list"></datalist>
         </div>
 
         <div class="form-group">
@@ -143,6 +144,38 @@
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     dateInput.value = `${yyyy}-${mm}-${dd}`;
+
+    // --- localStorage から科目リストを管理する処理 ---
+    const subjectList = document.getElementById('subject_list');
+    
+    // localStorage からデータを取得（なければ空の配列）
+    let savedSubjects = JSON.parse(localStorage.getItem('myStudySubjects')) || [];
+
+    // datalist に選択肢を展開する関数
+    function renderSubjectList() {
+        subjectList.innerHTML = ''; // 一旦クリア
+        savedSubjects.forEach(subject => {
+            const option = document.createElement('option');
+            option.value = subject;
+            subjectList.appendChild(option);
+        });
+    }
+
+    // 新しい科目を保存する関数
+    function saveSubjectLocally(newSubject) {
+        // まだ保存されていない科目なら追加する
+        if (!savedSubjects.includes(newSubject)) {
+            savedSubjects.push(newSubject);
+            // localStorage に JSON 形式で保存
+            localStorage.setItem('myStudySubjects', JSON.stringify(savedSubjects));
+            // datalist を更新
+            renderSubjectList();
+        }
+    }
+
+    // 画面読み込み時にリストを展開
+    renderSubjectList();
+    // ------------------------------------------------
 
     // --- 送信処理 ---
     document.getElementById('recordForm').addEventListener('submit', async (e) => {
@@ -179,6 +212,7 @@
             });
 
             // 成功時の処理
+            saveSubjectLocally(payload.subject_name);
             messageDiv.textContent = '✅ 記録を保存しました！';
             messageDiv.className = 'success';
             
