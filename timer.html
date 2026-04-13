@@ -23,7 +23,22 @@
             text-align: center;
         }
         h2 { margin-top: 0; font-size: 20px; color: #1f2937; }
-        
+        .nav-link {
+            display: block;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #e5e7eb; /* 薄いグレー */
+            color: #374151;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .nav-link:active {
+            background-color: #d1d5db;
+        }
         /* タイマー表示部 */
         #timerDisplay {
             font-size: 48px;
@@ -68,7 +83,7 @@
 
 <div class="container">
     <h2>⏱️ 学習タイマー</h2>
-    
+    <a href="index.html" class="nav-link">⬅️ 📝 手入力で記録する画面へ戻る</a>
     <div class="form-group">
         <label for="subject_name">科目名</label>
         <input type="text" id="subject_name" placeholder="例: データベース設計" required>
