@@ -258,7 +258,10 @@
 
     document.getElementById('bpForm').onsubmit = async (e) => {
         e.preventDefault();
+        const rawValue = document.getElementById('bp_datetime').value; // "2026-05-06T17:47"
         const data = {
+            // Tを半角スペースに置き換え、秒とJSTのオフセット(+09:00)を付与
+            measurement_datetime: rawValue.replace('T', ' ') + ':00+09:00',
             measurement_datetime: document.getElementById('bp_datetime').value.replace('T', ' '),
             systolic: document.getElementById('systolic').value,
             diastolic: document.getElementById('diastolic').value,
