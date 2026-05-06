@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Tracker - GitHub Pages</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f7fa;
+            --accent-color: #e74c3c;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        /* タブスタイル */
+        .tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            color: #999;
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: -2px;
+        }
+
+        /* フォームスタイル */
+        .form-content {
+            display: none;
+        }
+
+        .form-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+            font-weight: bold;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background-color: #357abd;
+        }
+
+        .status {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.85rem;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏥 健康管理入力</h1>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('bp')">血圧</div>
+        <div class="tab" onclick="switchTab('steps')">歩数</div>
+    </div>
+
+    <div style="display:none;">
+        <input type="text" id="gasUrl" value="YOUR_GAS_WEB_APP_URL_HERE">
+        <input type="text" id="apiKey" value="your-secret-key-12345">
+    </div>
+
+    <form id="bpForm" class="form-content active">
+        <div class="input-group">
+            <label>測定日時</label>
+            <input type="datetime-local" id="bp_datetime" required>
+        </div>
+        <div class="input-group">
+            <label>最高血圧 (mmHg)</label>
+            <input type="number" id="systolic" placeholder="120" required>
+        </div>
+        <div class="input-group">
+            <label>最低血圧 (mmHg)</label>
+            <input type="number" id="diastolic" placeholder="80" required>
+        </div>
+        <div class="input-group">
+            <label>備考</label>
+            <textarea id="bp_note" rows="2"></textarea>
+        </div>
+        <button type="submit">血圧を保存</button>
+    </form>
+
+    <form id="stepForm" class="form-content">
+        <div class="input-group">
+            <label>日付</label>
+            <input type="date" id="step_date" required>
+        </div>
+        <div class="input-group">
+            <label>総歩数</label>
+            <input type="number" id="total_step" placeholder="8000" required>
+        </div>
+        <div class="input-group">
+            <label>階段上り (段/分)</label>
+            <input type="number" id="stairs_step" value="0">
+        </div>
+        <div class="input-group">
+            <label>早歩き (分)</label>
+            <input type="number" id="brisk_step" value="0">
+        </div>
+        <div class="input-group">
+            <label>備考</label>
+            <textarea id="step_note" rows="2"></textarea>
+        </div>
+        <button type="submit">歩数を保存</button>
+    </form>
+
+    <div id="statusMsg" class="status"></div>
+</div>
+
+<script>
+    // 初期日時の設定
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('bp_datetime').value = now.toISOString().slice(0, 16);
+    document.getElementById('step_date').value = now.toISOString().slice(0, 10);
+
+    function switchTab(type) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.form-content').forEach(f => f.classList.remove('active'));
+        
+        if(type === 'bp') {
+            document.querySelectorAll('.tab')[0].classList.add('active');
+            document.getElementById('bpForm').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab')[1].classList.add('active');
+            document.getElementById('stepForm').classList.add('active');
+        }
+    }
+
+    async function sendData(type, payload) {
+        const url = document.getElementById('gasUrl').value;
+        const key = document.getElementById('apiKey').value;
+        const statusDiv = document.getElementById('statusMsg');
+        
+        statusDiv.style.display = 'block';
+        statusDiv.style.backgroundColor = '#eee';
+        statusDiv.innerText = '送信中...';
+
+        try {
+            // GASへのリクエスト (action: 'insert' 用のペイロードを構成)
+            // 注意: GAS側の doPost で 'insert' アクションをさばけるようにする必要があります
+            const response = await fetch(url, {
+                method: 'POST',
+                mode: 'no-cors', // ブラウザのCORS制限回避
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'insert', // GAS側で分岐させるためのフラグ
+                    type: type,
+                    key: key,
+                    data: payload
+                })
+            });
+
+            statusDiv.style.backgroundColor = '#d4edda';
+            statusDiv.style.color = '#155724';
+            statusDiv.innerText = '✅ 保存しました！';
+            
+            if(type === 'blood_pressure') document.getElementById('bpForm').reset();
+            else document.getElementById('stepForm').reset();
+
+        } catch (error) {
+            statusDiv.style.backgroundColor = '#f8d7da';
+            statusDiv.style.color = '#721c24';
+            statusDiv.innerText = '❌ エラー: ' + error.message;
+        }
+    }
+
+    document.getElementById('bpForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const data = {
+            measurement_datetime: document.getElementById('bp_datetime').value.replace('T', ' '),
+            systolic: document.getElementById('systolic').value,
+            diastolic: document.getElementById('diastolic').value,
+            note: document.getElementById('bp_note').value
+        };
+        await sendData('blood_pressure', data);
+    };
+
+    document.getElementById('stepForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const data = {
+            date: document.getElementById('step_date').value,
+            total_step: document.getElementById('total_step').value,
+            stairs_step: document.getElementById('stairs_step').value,
+            brisk_step: document.getElementById('brisk_step').value,
+            note: document.getElementById('step_note').value
+        };
+        await sendData('step', data);
+    };
+</script>
+
+</body>
+</html>
