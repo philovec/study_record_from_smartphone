@@ -207,38 +207,52 @@
         const statusDiv = document.getElementById('statusMsg');
         
         statusDiv.style.display = 'block';
-        statusDiv.style.backgroundColor = '#eee';
-        statusDiv.innerText = '送信中...';
-
+        statusDiv.style.backgroundColor = '#f0f0f0';
+        statusDiv.style.color = '#333';
+        statusDiv.innerText = '⌛ サーバーに送信中...';
+    
         try {
-            // GASへのリクエスト (action: 'insert' 用のペイロードを構成)
-            // 注意: GAS側の doPost で 'insert' アクションをさばけるようにする必要があります
+            // 🌟 'no-cors' を削除。これによりレスポンスの中身が読めるようになります
             const response = await fetch(url, {
                 method: 'POST',
-                mode: 'no-cors', // ブラウザのCORS制限回避
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    action: 'insert', // GAS側で分岐させるためのフラグ
+                    action: 'insert',
                     type: type,
                     key: key,
                     data: payload
                 })
             });
-
-            if (response.status == "success") {
+    
+            // 🌟 HTTPステータスコードのチェック（401, 500など）
+            if (!response.ok) {
+                throw new Error(`HTTPエラー: ${response.status}`);
+            }
+    
+            const resJson = await response.json();
+    
+            // 🌟 GAS側のロジックで返されたエラー（status: "error"）を捕捉
+            if (resJson.status === 'success') {
                 statusDiv.style.backgroundColor = '#d4edda';
                 statusDiv.style.color = '#155724';
-                statusDiv.innerText = '✅ 保存しました！';
-            } else if (response.status == "error") {
-                statusDiv.innerText = "エラー:" + response.message;          
-            };
-            if(type === 'blood_pressure') document.getElementById('bpForm').reset();
-            else document.getElementById('stepForm').reset();
-
+                statusDiv.innerText = '✅ 保存に成功しました！';
+                
+                // フォームをリセット
+                if(type === 'blood_pressure') document.getElementById('bpForm').reset();
+                else document.getElementById('stepForm').reset();
+                
+                // 3秒後にメッセージを消す
+                setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
+            } else {
+                // GAS側で意図的に投げられたエラー（APIキー間違いなど）
+                throw new Error(resJson.message || '不明なエラーが発生しました');
+            }
+    
         } catch (error) {
+            // 🌟 ネットワークエラーや、上記で投げたErrorをここでキャッチ
+            console.error('Submission Error:', error);
             statusDiv.style.backgroundColor = '#f8d7da';
             statusDiv.style.color = '#721c24';
-            statusDiv.innerText = '❌ エラー: ' + error.message;
+            statusDiv.innerText = '❌ 保存失敗: ' + error.message;
         }
     }
 
