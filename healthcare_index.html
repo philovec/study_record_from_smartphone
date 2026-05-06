@@ -225,12 +225,12 @@
                 })
             });
 
-            if (responce.status == "success") {
+            if (response.status == "success") {
                 statusDiv.style.backgroundColor = '#d4edda';
                 statusDiv.style.color = '#155724';
                 statusDiv.innerText = '✅ 保存しました！';
-            } else if (responce.status == "error") {
-                statusDiv.innerText = "エラー:" + responce.message;          
+            } else if (response.status == "error") {
+                statusDiv.innerText = "エラー:" + response.message;          
             };
             if(type === 'blood_pressure') document.getElementById('bpForm').reset();
             else document.getElementById('stepForm').reset();
